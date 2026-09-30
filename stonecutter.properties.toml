@@ -6,7 +6,6 @@ mod.group = "com.crazylimits"
 mod.version = "1.10.0"
 mod.modrinth = "8CsGxc95"
 mod.curseforge = "679045"
-mod.github = "enjarai/shared-resources"
 
 deps.fabric_loader = "0.19.5"
 

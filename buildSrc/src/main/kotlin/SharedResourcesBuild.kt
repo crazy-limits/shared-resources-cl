@@ -28,7 +28,8 @@ class PublishingDependencies {
 }
 
 /**
- * Configures uploading to Modrinth, CurseForge and GitHub, enabled by the matching `enjarai*Token` Gradle properties.
+ * Configures uploading to Modrinth and CurseForge, enabled by the `modrinthToken` and `curseforgeToken` Gradle properties.
+ * The GitHub release, with every jar in one place, is made by the release workflow.
  */
 fun Project.configurePublishing(
     loader: String,
@@ -48,7 +49,7 @@ fun Project.configurePublishing(
         type.set(ReleaseType.STABLE)
         modLoaders.add(loader)
 
-        providers.gradleProperty("enjaraiModrinthToken").orNull?.let { token ->
+        providers.gradleProperty("modrinthToken").orNull?.let { token ->
             modrinth {
                 projectId.set(property("mod.modrinth").toString())
                 accessToken.set(token)
@@ -58,22 +59,13 @@ fun Project.configurePublishing(
             }
         }
 
-        providers.gradleProperty("enjaraiCurseforgeToken").orNull?.let { token ->
+        providers.gradleProperty("curseforgeToken").orNull?.let { token ->
             curseforge {
                 projectId.set(property("mod.curseforge").toString())
                 accessToken.set(token)
                 this.minecraftVersions.addAll(minecraftVersions)
                 dependencies.required.forEach { requires(it) }
                 dependencies.optional.forEach { optional(it) }
-            }
-        }
-
-        providers.gradleProperty("enjaraiGithubToken").orNull?.let { token ->
-            github {
-                repository.set(property("mod.github").toString())
-                accessToken.set(token)
-                commitish.set("master")
-                tagName.set(project.version.toString())
             }
         }
     }

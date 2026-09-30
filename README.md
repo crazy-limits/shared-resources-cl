@@ -161,6 +161,33 @@ Change it and run `./gradlew stonecutterGenerate`, or use the "Set active projec
 Fabric uses Loom (through loom-back-compat for 26.1+), NeoForge uses ModDevGradle,
 Forge uses ForgeGradle 7, except Forge 1.20.1 which uses ModDevGradle Legacy.
 
+## Releasing
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org), which pull requests are checked for:
+`type(scope): subject`, with type one of `feat`, `fix`, `perf`, `refactor`, `revert`, `docs`, `style`, `test`,
+`build`, `ci` or `chore`. The next version is picked from them with [semantic versioning](https://semver.org):
+
+| Commits since the last release           | Bump                 |
+|------------------------------------------|----------------------|
+| `feat!: ...` or a `BREAKING CHANGE:` footer | major (`2.0.0`)   |
+| `feat: ...`                              | minor (`1.11.0`)     |
+| `fix: ...`, `perf: ...`                  | patch (`1.10.1`)     |
+| anything else                            | no release           |
+
+To release, push the `release` tag on the latest commit of `master`:
+
+```bash
+git tag -f release && git push -f origin release
+```
+
+The [release workflow](.github/workflows/release.yml) then sets `mod.version`, writes the release notes to
+`CHANGELOG.md`, builds and tests every target, pushes a `chore(release): x.y.z` commit tagged `x.y.z`, creates
+the GitHub release with all jars and uploads to Modrinth and CurseForge if the `MODRINTH_TOKEN` and
+`CURSEFORGE_TOKEN` secrets are set. It can also be started from the Actions tab to force a bump level.
+If `mod.version` was already raised by hand past the last release, that version is used instead of a lower one.
+
+Preview the next version locally with `python3 .github/scripts/release.py next`.
+
 ## Credits
 
 - [enjarai](https://github.com/enjarai), who created Shared Resources, and [jacg](https://github.com/jacg), co-author.

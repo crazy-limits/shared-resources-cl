@@ -5,6 +5,8 @@ name: build
 on:
   pull_request:
   push:
+    # Not on tags: the release workflow builds those itself
+    branches: ['**']
   workflow_dispatch:
     inputs:
       selftest:
