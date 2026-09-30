@@ -86,6 +86,9 @@ jobs:
             25
       - name: setup gradle
         uses: gradle/actions/setup-gradle@v4
+      # A download cut off on an earlier run can leave an empty file in ForgeGradle's cache, which then fails every run
+      - name: remove broken downloads from the cache
+        run: find ~/.gradle/caches/minecraftforge -type f -size 0 -print -delete 2>/dev/null || true
       - name: build and test
         run: ./gradlew collectAll testAll --stacktrace
       - name: capture test reports
