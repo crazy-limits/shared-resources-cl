@@ -24,12 +24,16 @@ Currently supported game files/directories:
 - Servers
 - Screenshots
 - Saved Hotbars
-- The fabric config folder (should work with the configs of any properly coded mods)
+- The config folder (Fabric only, should work with the configs of any properly coded mods)
 - Shader packs (via Iris)
 - Schematics (via Litematica)
 - Replay Recordings (via ReplayMod)
 - Skin Presets (via SkinShuffle)
-- World Map Data (via Xaero's World Map)
+- World Map Data (via Xaero's World Map, Fabric only)
+
+Available for Fabric, NeoForge and Forge on Minecraft 1.20.1, 1.21.1, 1.21.4, 1.21.11, 26.1, 26.2 and 26.3
+(NeoForge from 1.21.1). The in-game config screen needs [Cloth Config](https://modrinth.com/mod/cloth-config),
+without it the config is edited in `config/shared-resources.json`. Cloth Config isn't released for Forge after 1.21.4.
 
 Incorporates code from [RememberMyTxt](https://github.com/DuncanRuns/RememberMyTxt)
 (with permission from [DuncanRuns](https://github.com/DuncanRuns))
@@ -41,27 +45,11 @@ between different game versions and mod sets.
 A robust API is available for other mods to use, allowing them to easily
 add support for their own game files and directories.
 
-To make use of the API, first add it as a dependency in gradle.
-It's recommended to include the API as a JiJ dependency as well,
-as the file size is small, and it doesn't do anything without the main mod present.
-You can also use it without JiJ'ing, but you'll have to make sure you only 
-interact with API classes when the main mod is present.
+The API ships inside the main mod, in the `nl.enjarai.shared_resources.api` package.
+Depend on the mod at compile time only, and only touch API classes when it is loaded
+(`shared-resources` on Fabric, `shared_resources` on NeoForge and Forge).
 
-```groovy
-repositories {
-    maven {
-        url "https://maven.enjarai.nl/releases"
-    }
-}
-
-dependencies {
-    modImplementation include("nl.enjarai:shared-resources-api::[VERSION]")
-}
-```
-
-As the version, use the latest version from the [releases page](https://github.com/enjarai/shared-resources/releases)
-
-Then, you'll want to create a Shared Resources entrypoint in your mod's `fabric.mod.json`:
+On Fabric, create a Shared Resources entrypoint in your mod's `fabric.mod.json`:
 
 ```json
 {
@@ -73,18 +61,21 @@ Then, you'll want to create a Shared Resources entrypoint in your mod's `fabric.
 }
 ```
 
-Make sure to implement the `SharedResourcesEntryPoint` interface in your entrypoint class, 
+On NeoForge and Forge, register it as a Java service instead, by listing the class in
+`META-INF/services/nl.enjarai.shared_resources.api.SharedResourcesEntrypoint`.
+
+Make sure to implement the `SharedResourcesEntrypoint` interface in your entrypoint class, 
 and use that to create and register your `GameResource` instances, each corresponding to a game file or directory.
-**This entrypoint is run during fabric's preLaunch phase, limit your interaction with Minecraft classes to a minimum.**
+**This entrypoint runs very early (Fabric's preLaunch phase), limit your interaction with Minecraft classes to a minimum.**
 
 ```java
 public class GameResources implements SharedResourcesEntrypoint {
     // You can manually implement these interfaces, but a builder is provided for convenience
     public static final ResourceDirectory MY_CUSTOM_DIRECTORY = new ResourceDirectoryBuilder("custom_directory")
-            .setDisplayName(Text.translatable("modid.directory.custom_directory"))
+            .setDisplayName(Component.translatable("modid.directory.custom_directory"))
             .setDescription(
-                    Text.translatable("modid.directory.custom_directory.description[0]"),
-                    Text.translatable("modid.directory.custom_directory.description[1]")
+                    Component.translatable("modid.directory.custom_directory.description[0]"),
+                    Component.translatable("modid.directory.custom_directory.description[1]")
             )
             .requiresRestart() // Set this if the directory requires a restart to take effect
             .overridesDefaultDirectory() // Set this if the directory completely overrides the default one
@@ -92,25 +83,25 @@ public class GameResources implements SharedResourcesEntrypoint {
             .isExperimental() // Set this to warn the user that issues may arise
             .build(); // For a comprehensive list of the available options, see the javadocs
     public static final ResourceFile A_CUSTOM_FILE = new ResourceFileBuilder("custom_file")
-            .setDisplayName(Text.translatable("modid.file.custom_file"))
+            .setDisplayName(Component.translatable("modid.file.custom_file"))
             .build();
     
     @Override
     public void registerResources(GameResourceRegistry registry) {
         // Don't forget to register your resources
-        registry.register(new Identifier("modid", "custom_directory"), MY_CUSTOM_DIRECTORY);
-        registry.register(new Identifier("modid", "custom_file"), A_CUSTOM_FILE);
+        registry.register(ResourceLocation.fromNamespaceAndPath("modid", "custom_directory"), MY_CUSTOM_DIRECTORY);
+        registry.register(ResourceLocation.fromNamespaceAndPath("modid", "custom_file"), A_CUSTOM_FILE);
     }
 }
 ```
 
 After registering your resources, they will automatically show up in the main mod's config screen, if it is loaded.
 
-Finally, you can use `GameDirectoryHelper` to get the path to the location of your resource when loading it:
+Finally, you can use `GameResourceHelper` to get the path to the location of your resource when loading it:
 
 ```java
 // If a global directory is selected, this will return the path to the global directory
-Path dirLocation = GameDirectoryHelper.getPathFor(GameResources.MY_CUSTOM_DIRECTORY);
+Path dirLocation = GameResourceHelper.getPathFor(GameResources.MY_CUSTOM_DIRECTORY);
 
 // Make sure to check if its null before using it
 if (dirLocation != null) {
@@ -121,6 +112,28 @@ if (dirLocation != null) {
 // Try to load from your default directory as well when possible
 loadYourStuffFunction(GameResources.MY_CUSTOM_DIRECTORY.getDefaultPath());
 ```
+
+## Building
+
+Every Minecraft version and loader is a [Stonecutter](https://stonecutter.kikugie.dev/) subproject named
+`{version}-{loader}`, e.g. `:1.21.11-neoforge`. Sources live once in `src/main` and use Mojang's official names,
+with `//? if` comments for version and loader differences. Versions and dependencies are declared in
+`settings.gradle.kts` and `stonecutter.properties.toml`.
+
+Gradle runs on Java 25. JDKs 17 and 21 are needed for 1.20.1 and 1.21.x, and are downloaded if missing.
+
+```bash
+./gradlew buildAll                    # build everything
+./gradlew collectAll                  # build everything and copy the jars to build/libs/{mod version}/
+./gradlew :1.21.11-fabric:build       # build one target
+./gradlew :26.3-neoforge:runClient    # run one target, each gets its own run/{target} directory
+```
+
+`.sc_active_version` picks the version the IDE and the sources on disk are switched to.
+Change it and run `./gradlew stonecutterGenerate`, or use the "Set active project" tasks in the `stonecutter` group.
+
+Fabric uses Loom (through loom-back-compat for 26.1+), NeoForge uses ModDevGradle,
+Forge uses ForgeGradle 7, except Forge 1.20.1 which uses ModDevGradle Legacy.
 
 ## License
 

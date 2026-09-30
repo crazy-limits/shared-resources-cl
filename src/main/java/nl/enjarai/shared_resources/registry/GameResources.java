@@ -1,8 +1,8 @@
 package nl.enjarai.shared_resources.registry;
 
-import net.fabricmc.loader.api.FabricLoader;
 import nl.enjarai.shared_resources.api.*;
 import nl.enjarai.shared_resources.SharedResources;
+import nl.enjarai.shared_resources.platform.Platform;
 import nl.enjarai.shared_resources.versioned.TextBuilder;
 
 import static nl.enjarai.shared_resources.SharedResources.id;
@@ -111,7 +111,8 @@ public class GameResources implements SharedResourcesEntrypoint {
         // Directories
         registry.register(id("resourcepacks"), RESOURCEPACKS);
         registry.register(id("saves"), SAVES);
-        registry.register(id("config"), CONFIG);
+        // Moving the config directory relies on Fabric Loader internals
+        if (Platform.isFabric()) registry.register(id("config"), CONFIG);
         if (!checkLoaded("memories-are-all-we-have")) {
             registry.register(id("screenshots"), SCREENSHOTS);
         }
@@ -128,7 +129,8 @@ public class GameResources implements SharedResourcesEntrypoint {
         if (checkLoaded("litematica")) registry.register(id("schematics"), SCHEMATICS);
         if (checkLoaded("replaymod")) registry.register(id("replay_recordings"), REPLAY_RECORDINGS);
         if (checkLoaded("skinshuffle")) registry.register(id("skinshuffle_data"), SKINSHUFFLE_DATA);
-        if (checkLoaded("xaeroworldmap")) {
+        // The World Map mixin targets Fabric Loader calls in Xaero's code
+        if (Platform.isFabric() && checkLoaded("xaeroworldmap")) {
             registry.register(id("xaeros_worldmap_config"), XAEROS_WORLDMAP_CONFIG);
             registry.register(id("xaeros_worldmap_data"), XAEROS_WORLDMAP_DATA);
         }
@@ -136,7 +138,7 @@ public class GameResources implements SharedResourcesEntrypoint {
     }
 
     private static boolean checkLoaded(String modid) {
-        boolean loaded = FabricLoader.getInstance().isModLoaded(modid);
+        boolean loaded = Platform.isModLoaded(modid);
         if (loaded) {
             SharedResources.LOGGER.info("Mod {} is loaded, enabling compat.", modid);
         }

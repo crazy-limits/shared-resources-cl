@@ -2,7 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "nl.enjarai.shared_resources.mixin",
-  "compatibilityLevel": "JAVA_8",
+  "compatibilityLevel": "${java}",
   "mixins": [
     "datapacks.VanillaDataPackProviderMixin",
     "resourcepacks.FileResourcePackProviderAccessor",

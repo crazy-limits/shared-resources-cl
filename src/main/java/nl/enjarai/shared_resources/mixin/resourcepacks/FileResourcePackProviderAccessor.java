@@ -1,12 +1,12 @@
 package nl.enjarai.shared_resources.mixin.resourcepacks;
 
-import net.minecraft.resource.FileResourcePackProvider;
-import net.minecraft.resource.ResourceType;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.repository.FolderRepositorySource;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(FileResourcePackProvider.class)
+@Mixin(FolderRepositorySource.class)
 public interface FileResourcePackProviderAccessor {
-    @Accessor("type")
-    ResourceType sharedresources$getResourceType();
+    @Accessor("packType")
+    PackType sharedresources$getResourceType();
 }

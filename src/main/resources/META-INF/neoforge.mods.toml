@@ -1,0 +1,33 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "LGPLv3"
+issueTrackerURL = "https://github.com/enjarai/shared-resources/issues"
+
+[[mods]]
+modId = "shared_resources"
+displayName = "${name}"
+version = "${version}"
+authors = "enjarai, jacg"
+description = "A mod for sharing game files like resource packs, shaders, saves and more between separate Minecraft instances."
+logoFile = "assets/shared-resources/icon.png"
+displayURL = "https://enjarai.dev/"
+
+[[mixins]]
+config = "shared-resources.mixins.json"
+
+[[mixins]]
+config = "shared-resources.compat.mixins.json"
+
+[[dependencies.shared_resources]]
+modId = "minecraft"
+type = "required"
+versionRange = "${minecraft}"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.shared_resources]]
+modId = "cloth_config"
+type = "optional"
+versionRange = "*"
+ordering = "NONE"
+side = "CLIENT"

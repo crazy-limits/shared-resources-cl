@@ -1,9 +1,9 @@
 package nl.enjarai.shared_resources.versioned;
 
-import net.minecraft.text.Text;
+import net.minecraft.network.chat.Component;
 
 public interface TextBuilder {
-    static Text translatable(String key, Object... objects) {
-        return Text.translatable(key, objects);
+    static Component translatable(String key, Object... objects) {
+        return Component.translatable(key, objects);
     }
 }

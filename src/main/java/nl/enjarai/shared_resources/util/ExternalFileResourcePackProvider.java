@@ -1,31 +1,30 @@
 package nl.enjarai.shared_resources.util;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.resource.FileResourcePackProvider;
-import net.minecraft.resource.ResourcePackProfile;
-import net.minecraft.resource.ResourcePackSource;
-import net.minecraft.resource.ResourceType;
-
 import java.nio.file.Path;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import net.minecraft.client.Minecraft;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.repository.FolderRepositorySource;
+import net.minecraft.server.packs.repository.Pack;
+import net.minecraft.server.packs.repository.PackSource;
 
-public class ExternalFileResourcePackProvider extends FileResourcePackProvider {
+public class ExternalFileResourcePackProvider extends FolderRepositorySource {
     protected final Supplier<Path> pathSupplier;
 
     public ExternalFileResourcePackProvider(Supplier<Path> pathSupplier) {
-        super(null, ResourceType.CLIENT_RESOURCES, ResourcePackSource.NONE/*? if >=1.20.2 {*/, MinecraftClient.getInstance().getSymlinkFinder()/*?}*/);
+        super(null, PackType.CLIENT_RESOURCES, PackSource.DEFAULT/*? if >=1.20.2 {*/, Minecraft.getInstance().directoryValidator()/*?}*/);
         this.pathSupplier = pathSupplier;
     }
 
     @Override
-    public void register(Consumer<ResourcePackProfile> profileAdder) {
+    public void loadPacks(Consumer<Pack> profileAdder) {
         FileResourcepackProviderProxy thiz = (FileResourcepackProviderProxy) this;
 
         Path path = pathSupplier.get();
         if (path == null) return;
         thiz.sharedresources$setPacksFolder(path);
 
-        super.register(profileAdder);
+        super.loadPacks(profileAdder);
     }
 }

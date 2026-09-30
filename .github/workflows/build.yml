@@ -1,39 +1,31 @@
-# Automatically build the project and run any configured tests for every push
-# and submitted pull request. This can help catch issues that only occur on
-# certain platforms or Java versions, and provides a first line of defence
-# against bad commits.
+# Builds every Minecraft version and loader combination for each push and pull request.
 
 name: build
 on: [pull_request, push]
 
 jobs:
   build:
-    strategy:
-      matrix:
-        # Use these Java versions
-        java: [
-          21,    # Current Java LTS & minimum supported by Minecraft
-        ]
-        # and run on both Linux and Windows
-        os: [ubuntu-20.04, windows-2022]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-24.04
     steps:
       - name: checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: validate gradle wrapper
-        uses: gradle/wrapper-validation-action@v1
-      - name: setup jdk ${{ matrix.java }}
-        uses: actions/setup-java@v1
+        uses: gradle/actions/wrapper-validation@v4
+      # 1.20.1 needs 17, 1.20.5-1.21.x needs 21, 26.1+ needs 25 (which also runs Gradle).
+      - name: setup jdks
+        uses: actions/setup-java@v4
         with:
-          java-version: ${{ matrix.java }}
-      - name: make gradle wrapper executable
-        if: ${{ runner.os != 'Windows' }}
-        run: chmod +x ./gradlew
+          distribution: temurin
+          java-version: |
+            17
+            21
+            25
+      - name: setup gradle
+        uses: gradle/actions/setup-gradle@v4
       - name: build
-        run: ./gradlew chiseledBuild --stacktrace
-#      - name: capture build artifacts
-#        if: ${{ runner.os == 'Linux' && matrix.java == '17' }} # Only upload artifacts built from latest java on one OS
-#        uses: actions/upload-artifact@v2
-#        with:
-#          name: Artifacts
-#          path: build/libs/
+        run: ./gradlew collectAll --stacktrace
+      - name: capture build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: shared-resources
+          path: build/libs/

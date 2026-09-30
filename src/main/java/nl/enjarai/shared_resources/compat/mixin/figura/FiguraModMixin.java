@@ -17,10 +17,12 @@ import java.nio.file.Path;
 public abstract class FiguraModMixin {
     @Dynamic
     @ModifyArg(
+            remap = false,
             method = "getFiguraDirectory",
             at = @At(
                     value = "INVOKE",
-                    target = "Lorg/figuramc/figura/utils/IOUtils;createDirIfNeeded(Ljava/nio/file/Path;)Ljava/nio/file/Path;"
+                    target = "Lorg/figuramc/figura/utils/IOUtils;createDirIfNeeded(Ljava/nio/file/Path;)Ljava/nio/file/Path;",
+                    remap = false
             ),
             index = 0
     )

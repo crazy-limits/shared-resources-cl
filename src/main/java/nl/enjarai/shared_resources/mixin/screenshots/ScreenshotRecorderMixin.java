@@ -1,25 +1,32 @@
 package nl.enjarai.shared_resources.mixin.screenshots;
 
-import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.client.util.ScreenshotRecorder;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.client.Screenshot;
 import nl.enjarai.shared_resources.api.GameResourceHelper;
+import nl.enjarai.shared_resources.platform.Platform;
 import nl.enjarai.shared_resources.registry.GameResources;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 import java.io.File;
 
-@Mixin(ScreenshotRecorder.class)
+@Mixin(Screenshot.class)
 public abstract class ScreenshotRecorderMixin {
-
-    @ModifyVariable(
-            method = "saveScreenshotInner",
-            at = @At(value = "STORE"),
-            index = 5
+    /**
+     * Swaps out `new File(gameDirectory, "screenshots")`. Matches every method since the folder
+     * is created in a lambda on newer versions, which is named differently per loader and version.
+     */
+    @WrapOperation(
+            method = "*",
+            at = @At(
+                    value = "NEW",
+                    target = "(Ljava/io/File;Ljava/lang/String;)Ljava/io/File;"
+            )
     )
-    private static File sharedresources$modScreenshotDir(File file) {
-        if (FabricLoader.getInstance().isModLoaded("memories-are-all-we-have")) {
+    private static File sharedresources$modScreenshotDir(File parent, String child, Operation<File> original) {
+        File file = original.call(parent, child);
+        if (!child.equals("screenshots") || Platform.isModLoaded("memories-are-all-we-have")) {
             return file;
         }
 

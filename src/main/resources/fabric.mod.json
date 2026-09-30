@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "shared-resources",
+  "id": "${id}",
   "version": "${version}",
 
-  "name": "Shared Resources",
+  "name": "${name}",
   "description": "A mod for sharing game files like resource packs, shaders, saves and more between separate Minecraft instances.",
   "authors": [
     "enjarai",
@@ -20,9 +20,6 @@
 
   "environment": "client",
   "entrypoints": {
-    "main": [
-      "nl.enjarai.shared_resources.SharedResources"
-    ],
     "preLaunch": [
       "nl.enjarai.shared_resources.SharedResourcesPreLaunch"
     ],
@@ -37,12 +34,18 @@
     "shared-resources.mixins.json",
     "shared-resources.compat.mixins.json"
   ],
-  "accessWidener": "shared-resources.accesswidener",
+  "accessWidener": "shared-resources.ct",
 
+  "provides": [
+    "shared-resources-api"
+  ],
   "depends": {
-    "minecraft": "${mc_target}",
-    "cicada": ">=0.6.0 <1.0.0",
-    "cloth-config": "*"
+    "fabricloader": ">=${loader}",
+    "minecraft": "${minecraft}"
+  },
+  "suggests": {
+    "cloth-config": "*",
+    "modmenu": "*"
   },
 
   "custom": {

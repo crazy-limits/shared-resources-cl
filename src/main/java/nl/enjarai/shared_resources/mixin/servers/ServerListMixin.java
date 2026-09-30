@@ -1,6 +1,5 @@
 package nl.enjarai.shared_resources.mixin.servers;
 
-import net.minecraft.client.option.ServerList;
 import nl.enjarai.shared_resources.api.GameResourceHelper;
 import nl.enjarai.shared_resources.registry.GameResources;
 import org.spongepowered.asm.mixin.Mixin;
@@ -12,6 +11,7 @@ import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 import java.io.File;
 import java.nio.file.Path;
+import net.minecraft.client.multiplayer.ServerList;
 
 @Mixin(ServerList.class)
 public abstract class ServerListMixin {
@@ -22,10 +22,10 @@ public abstract class ServerListMixin {
     }
 
     @ModifyArg(
-            method = "loadFile",
+            method = "load",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/nbt/NbtIo;read(Ljava/io/File;)Lnet/minecraft/nbt/NbtCompound;"
+                    target = "Lnet/minecraft/nbt/NbtIo;read(Ljava/io/File;)Lnet/minecraft/nbt/CompoundTag;"
             )
     )
     private File sharedresources$modifyFileLoad(File file) {
@@ -33,7 +33,7 @@ public abstract class ServerListMixin {
     }
 
     @ModifyArg(
-            method = "saveFile",
+            method = "save",
             at = @At(
                     value = "INVOKE",
                     target = "Ljava/io/File;createTempFile(Ljava/lang/String;Ljava/lang/String;Ljava/io/File;)Ljava/io/File;"
@@ -49,10 +49,10 @@ public abstract class ServerListMixin {
     }
 
     @ModifyArgs(
-            method = "saveFile",
+            method = "save",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/util/Util;backupAndReplace(Ljava/io/File;Ljava/io/File;Ljava/io/File;)V"
+                    target = "Lnet/minecraft/Util;safeReplaceFile(Ljava/io/File;Ljava/io/File;Ljava/io/File;)V"
             )
     )
     private void sharedresources$modifyFileSave2(Args args) {
@@ -70,10 +70,10 @@ public abstract class ServerListMixin {
     }
 
     @ModifyArg(
-            method = "loadFile",
+            method = "load",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/nbt/NbtIo;read(Ljava/nio/file/Path;)Lnet/minecraft/nbt/NbtCompound;"
+                    target = "Lnet/minecraft/nbt/NbtIo;read(Ljava/nio/file/Path;)Lnet/minecraft/nbt/CompoundTag;"
             )
     )
     private Path sharedresources$modifyFileLoad(Path file) {
@@ -81,7 +81,7 @@ public abstract class ServerListMixin {
     }
 
     @ModifyArg(
-            method = "saveFile",
+            method = "save",
             at = @At(
                     value = "INVOKE",
                     target = "Ljava/nio/file/Files;createTempFile(Ljava/nio/file/Path;Ljava/lang/String;Ljava/lang/String;[Ljava/nio/file/attribute/FileAttribute;)Ljava/nio/file/Path;"
@@ -97,10 +97,13 @@ public abstract class ServerListMixin {
     }
 
     @ModifyArgs(
-            method = "saveFile",
+            method = "save",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/util/Util;backupAndReplace(Ljava/nio/file/Path;Ljava/nio/file/Path;Ljava/nio/file/Path;)V"
+                    //? if >=1.21.11 {
+                    target = "Lnet/minecraft/util/Util;safeReplaceFile(Ljava/nio/file/Path;Ljava/nio/file/Path;Ljava/nio/file/Path;)V"
+                    //?} else
+                    //target = "Lnet/minecraft/Util;safeReplaceFile(Ljava/nio/file/Path;Ljava/nio/file/Path;Ljava/nio/file/Path;)V"
             )
     )
     private void sharedresources$modifyFileSave2(Args args) {

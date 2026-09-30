@@ -1,6 +1,5 @@
 package nl.enjarai.shared_resources.mixin.options;
 
-import net.minecraft.client.option.GameOptions;
 import nl.enjarai.shared_resources.api.GameResourceHelper;
 import nl.enjarai.shared_resources.registry.GameResources;
 import org.spongepowered.asm.mixin.Final;
@@ -13,8 +12,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.io.File;
 import java.nio.file.Path;
+import net.minecraft.client.Options;
 
-@Mixin(GameOptions.class)
+@Mixin(Options.class)
 public abstract class GameOptionsMixin {
     @Mutable
     @Shadow @Final private File optionsFile;

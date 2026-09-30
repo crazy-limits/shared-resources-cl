@@ -1,1 +1,6 @@
-- Updated to support 1.21.3 and 1.21.4.
+- Now available for NeoForge and Forge, next to Fabric.
+- Added support for Minecraft 1.21.11, 26.1, 26.2 and 26.3.
+- Supported versions are now 1.20.1, 1.21.1, 1.21.4, 1.21.11, 26.1, 26.2 and 26.3.
+- Cloth Config is now optional, it's only needed for the config screen.
+- Cicada is no longer required.
+- The API is now part of the main mod instead of a separate jar.

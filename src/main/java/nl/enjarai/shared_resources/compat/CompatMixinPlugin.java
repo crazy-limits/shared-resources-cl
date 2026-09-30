@@ -1,7 +1,7 @@
 package nl.enjarai.shared_resources.compat;
 
-import net.fabricmc.loader.api.FabricLoader;
 import nl.enjarai.shared_resources.SharedResources;
+import nl.enjarai.shared_resources.platform.Platform;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.Mixins;
@@ -35,9 +35,14 @@ public class CompatMixinPlugin implements IMixinConfigPlugin {
             ClassNode classNode = MixinService.getService().getBytecodeProvider().getClassNode(mixinClassName);
             AnnotationNode annotationNode = Annotations.getVisible(classNode, CompatMixin.class);
 
+            // Xaero's World Map compat targets Fabric Loader calls
+            if (!Platform.isFabric() && mixinClassName.contains(".xaeroworldmap.")) {
+                return false;
+            }
+
             //noinspection unchecked
             for (String modId : (List<String>) annotationNode.values.get(1)) {
-                if (!FabricLoader.getInstance().isModLoaded(modId)) {
+                if (!Platform.isModLoaded(modId)) {
                     return false;
                 }
             }

@@ -1,6 +1,5 @@
 package nl.enjarai.shared_resources.config;
 
-import net.minecraft.util.Identifier;
 import nl.enjarai.shared_resources.api.GameResource;
 import nl.enjarai.shared_resources.api.GameResourceRegistry;
 import nl.enjarai.shared_resources.util.directory.GameDirectoryProvider;
@@ -9,6 +8,7 @@ import nl.enjarai.shared_resources.util.directory.RootedGameDirectoryProvider;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import net.minecraft.resources.Identifier;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
