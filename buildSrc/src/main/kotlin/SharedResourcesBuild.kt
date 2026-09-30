@@ -53,6 +53,8 @@ fun Project.configurePublishing(
             else -> ReleaseType.STABLE
         })
         modLoaders.add(loader)
+        // -PpublishDryRun checks everything without uploading
+        dryRun.set(providers.gradleProperty("publishDryRun").isPresent)
 
         providers.gradleProperty("modrinthToken").orNull?.let { token ->
             modrinth {
@@ -68,6 +70,9 @@ fun Project.configurePublishing(
             curseforge {
                 projectId.set(property("mod.curseforge").toString())
                 accessToken.set(token)
+                // Client-side only mod
+                client.set(true)
+                server.set(false)
                 this.minecraftVersions.addAll(minecraftVersions)
                 dependencies.required.forEach { requires(it) }
                 dependencies.optional.forEach { optional(it) }
