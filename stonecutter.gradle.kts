@@ -44,6 +44,22 @@ tasks.register("buildAll") {
     dependsOn(stonecutter.versions.map { ":${it.project}:build" })
 }
 
+tasks.register("testAll") {
+    group = "stonecutter"
+    description = "Runs the unit and mixin target tests on every version/loader combination"
+    dependsOn(stonecutter.versions.map { ":${it.project}:test" })
+}
+
+tasks.register("selfTestAll") {
+    group = "stonecutter"
+    description = "Launches every version/loader combination and checks every feature in game, one at a time"
+    if (providers.gradleProperty("sharedResources.selfTest").isPresent) {
+        dependsOn(stonecutter.versions.map { ":${it.project}:runClient" })
+    } else doFirst {
+        throw GradleException("Run with -PsharedResources.selfTest, e.g. ./gradlew selfTestAll -PsharedResources.selfTest")
+    }
+}
+
 tasks.register("collectAll") {
     group = "stonecutter"
     description = "Builds every version/loader combination and copies the jars to `build/libs/{mod version}/`"

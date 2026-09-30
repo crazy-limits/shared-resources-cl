@@ -8,6 +8,7 @@ version = "${project.property("mod.version")}+${sc.current.version}-fabric"
 base.archivesName = project.property("mod.id") as String
 
 val requiredJava = requiredJavaFor(sc.current.version)
+val selfTest = selfTestSetup()
 val mcReleases = sc.properties.rawOrNull("mod", "mc_releases")?.asList().orEmpty().map { it.toString() }
 
 repositories {
@@ -55,6 +56,13 @@ loom {
         runDirectory = rootProject.file("run/${sc.current.project}")
         jvmArguments.add("-Dmixin.debug.export=true")
     }
+
+    selfTest?.let { setup ->
+        runConfigs.named("client") {
+            runDirectory = setup.dir
+            jvmArguments.add("-Dshared-resources.selftest=${setup.report.absolutePath}")
+        }
+    }
 }
 
 // Loom rebuilds the source set after Stonecutter substitutes it, so point at the processed copy by hand.
@@ -62,6 +70,12 @@ loom {
 sourceSets.main {
     java.setSrcDirs(listOf(layout.buildDirectory.dir("generated/stonecutter/main/java")))
 }
+sourceSets.test {
+    java.setSrcDirs(listOf(layout.buildDirectory.dir("generated/stonecutter/test/java")))
+}
+
+configureTests()
+configureSelfTest("runClient")
 
 java {
     withSourcesJar()

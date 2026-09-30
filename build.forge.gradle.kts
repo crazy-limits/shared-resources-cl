@@ -8,6 +8,7 @@ version = "${project.property("mod.version")}+${sc.current.version}-forge"
 base.archivesName = project.property("mod.id") as String
 
 val requiredJava = requiredJavaFor(sc.current.version)
+val selfTest = selfTestSetup()
 val mcReleases = sc.properties.rawOrNull("mod", "mc_releases")?.asList().orEmpty().map { it.toString() }
 val clothVersion = sc.properties.getOrNull<String>("deps.cloth_config").orEmpty()
 
@@ -19,9 +20,12 @@ minecraft {
     runs {
         configureEach {
             // One run directory per target, so versions never share worlds or configs
-            workingDir.convention(rootProject.layout.projectDirectory.dir("run/${sc.current.project}"))
+            workingDir.convention(rootProject.layout.projectDirectory.dir(selfTest?.dir?.path ?: "run/${sc.current.project}"))
             args("--mixin.config=shared-resources.mixins.json", "--mixin.config=shared-resources.compat.mixins.json")
             systemProperty("mixin.debug.export", "true")
+            selfTest?.let { systemProperty("shared-resources.selftest", it.report.absolutePath) }
+            // GLFW and SDL need the main thread on macOS, ForgeGradle doesn't add this itself
+            if (System.getProperty("os.name").lowercase().contains("mac")) jvmArgs("-XstartOnFirstThread")
         }
         register("client")
     }
@@ -50,6 +54,8 @@ dependencies {
     implementation(minecraft.dependency("net.minecraftforge:forge:${project.property("deps.forge")}"))
     compileOnly("io.github.llamalad7:mixinextras-common:0.5.0")
     "jarJar"("io.github.llamalad7:mixinextras-forge:0.5.0")
+    // Dev runs load the mod from its classes, so the jar-in-jar copy isn't there
+    runtimeOnly("io.github.llamalad7:mixinextras-forge:0.5.0")
 
     // Optional, only provides the config screen. Cloth Config has no Forge builds after 1.21.4.
     if (clothVersion.isNotEmpty()) {
@@ -62,6 +68,12 @@ dependencies {
 sourceSets.main {
     java.setSrcDirs(listOf(layout.buildDirectory.dir("generated/stonecutter/main/java")))
 }
+sourceSets.test {
+    java.setSrcDirs(listOf(layout.buildDirectory.dir("generated/stonecutter/test/java")))
+}
+
+configureTests()
+configureSelfTest("runClient")
 
 java {
     withSourcesJar()
@@ -89,7 +101,8 @@ tasks {
         inputs.properties(props)
         filesMatching("META-INF/mods.toml") { expand(props) }
 
-        val mixinJava = "JAVA_${requiredJava.majorVersion}"
+        // Forge's Mixin stops at JAVA_21, it still loads newer class files
+        val mixinJava = "JAVA_${minOf(requiredJava.majorVersion.toInt(), 21)}"
         inputs.property("java", mixinJava)
         filesMatching("*.mixins.json") { expand("java" to mixinJava) }
 

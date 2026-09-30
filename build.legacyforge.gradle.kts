@@ -8,6 +8,7 @@ version = "${project.property("mod.version")}+${sc.current.version}-forge"
 base.archivesName = project.property("mod.id") as String
 
 val requiredJava = requiredJavaFor(sc.current.version)
+val selfTest = selfTestSetup()
 val mcReleases = sc.properties.rawOrNull("mod", "mc_releases")?.asList().orEmpty().map { it.toString() }
 val clothVersion = sc.properties.getOrNull<String>("deps.cloth_config").orEmpty()
 // Forge 1.20.1 runs on SRG names, so the jar is remapped and mixins need a refmap
@@ -37,6 +38,9 @@ legacyForge {
     version = project.property("deps.forge") as String
     accessTransformers.from(rootProject.file("src/main/resources/META-INF/accesstransformer.cfg"))
 
+    // Minecraft on the test classpath, for MixinTargetsTest and friends
+    addModdingDependenciesTo(sourceSets.test.get())
+
     mods {
         register("shared_resources") {
             sourceSet(sourceSets.main.get())
@@ -47,8 +51,9 @@ legacyForge {
         register("client") {
             client()
             // One run directory per target, so versions never share worlds or configs
-            gameDirectory = rootProject.file("run/${sc.current.project}")
+            gameDirectory = selfTest?.dir ?: rootProject.file("run/${sc.current.project}")
             jvmArgument("-Dmixin.debug.export=true")
+            selfTest?.let { jvmArgument("-Dshared-resources.selftest=${it.report.absolutePath}") }
         }
     }
 }
@@ -58,6 +63,9 @@ mixin {
     config("shared-resources.mixins.json")
     config("shared-resources.compat.mixins.json")
 }
+
+configureTests()
+configureSelfTest("runClient")
 
 java {
     withSourcesJar()

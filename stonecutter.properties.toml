@@ -2,7 +2,7 @@
 # Keys are resolved from the most specific table: [loader."version"] > ["version"] > [loader] > top level.
 mod.id = "shared-resources"
 mod.name = "Shared Resources"
-mod.group = "nl.enjarai"
+mod.group = "com.crazylimits"
 mod.version = "1.10.0"
 mod.modrinth = "8CsGxc95"
 mod.curseforge = "679045"

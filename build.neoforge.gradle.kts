@@ -8,6 +8,7 @@ version = "${project.property("mod.version")}+${sc.current.version}-neoforge"
 base.archivesName = project.property("mod.id") as String
 
 val requiredJava = requiredJavaFor(sc.current.version)
+val selfTest = selfTestSetup()
 val mcReleases = sc.properties.rawOrNull("mod", "mc_releases")?.asList().orEmpty().map { it.toString() }
 
 repositories {
@@ -28,6 +29,9 @@ neoForge {
     version = project.property("deps.neoforge") as String
     accessTransformers.from(rootProject.file("src/main/resources/META-INF/accesstransformer.cfg"))
 
+    // Minecraft on the test classpath, for MixinTargetsTest and friends
+    addModdingDependenciesTo(sourceSets.test.get())
+
     mods {
         register("shared_resources") {
             sourceSet(sourceSets.main.get())
@@ -38,11 +42,15 @@ neoForge {
         register("client") {
             client()
             // One run directory per target, so versions never share worlds or configs
-            gameDirectory = rootProject.file("run/${sc.current.project}")
+            gameDirectory = selfTest?.dir ?: rootProject.file("run/${sc.current.project}")
             jvmArgument("-Dmixin.debug.export=true")
+            selfTest?.let { jvmArgument("-Dshared-resources.selftest=${it.report.absolutePath}") }
         }
     }
 }
+
+configureTests()
+configureSelfTest("runClient")
 
 java {
     withSourcesJar()

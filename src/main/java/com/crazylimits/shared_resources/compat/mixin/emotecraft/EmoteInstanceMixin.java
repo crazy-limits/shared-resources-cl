@@ -1,0 +1,34 @@
+package com.crazylimits.shared_resources.compat.mixin.emotecraft;
+
+import com.crazylimits.shared_resources.api.GameResourceHelper;
+import com.crazylimits.shared_resources.compat.CompatMixin;
+import com.crazylimits.shared_resources.registry.GameResources;
+import org.spongepowered.asm.mixin.Dynamic;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.io.File;
+import java.nio.file.Path;
+
+@Pseudo
+@CompatMixin("emotecraft")
+@Mixin(targets = "io.github.kosmx.emotes.executor.EmoteInstance")
+public class EmoteInstanceMixin {
+    @Dynamic
+    @Inject(
+            method = "getExternalEmoteDir",
+            at = @At("HEAD"),
+            cancellable = true,
+            remap = false
+    )
+    private void shared_resources$modifyEmojiDir(CallbackInfoReturnable<File> ci) {
+        Path newDir = GameResourceHelper.getPathFor(GameResources.EMOTES);
+
+        if (newDir != null) {
+            ci.setReturnValue(newDir.toFile());
+        }
+    }
+}

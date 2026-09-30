@@ -1,0 +1,32 @@
+package com.crazylimits.shared_resources.compat.mixin.figura;
+
+import com.crazylimits.shared_resources.api.GameResourceHelper;
+import com.crazylimits.shared_resources.compat.CompatMixin;
+import com.crazylimits.shared_resources.registry.GameResources;
+import org.spongepowered.asm.mixin.Dynamic;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
+
+import java.nio.file.Path;
+
+@Pseudo
+@CompatMixin("figura")
+@Mixin(targets = "org.figuramc.figura.FiguraMod")
+public abstract class FiguraModMixin {
+    @Dynamic
+    @ModifyArg(
+            remap = false,
+            method = "getFiguraDirectory",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lorg/figuramc/figura/utils/IOUtils;createDirIfNeeded(Ljava/nio/file/Path;)Ljava/nio/file/Path;",
+                    remap = false
+            ),
+            index = 0
+    )
+    private static Path modifyFiguraDirectory(Path original) {
+        return GameResourceHelper.getPathOrDefaultFor(GameResources.FIGURA, original);
+    }
+}

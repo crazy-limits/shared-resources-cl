@@ -21,13 +21,13 @@
   "environment": "client",
   "entrypoints": {
     "preLaunch": [
-      "nl.enjarai.shared_resources.SharedResourcesPreLaunch"
+      "com.crazylimits.shared_resources.SharedResourcesPreLaunch"
     ],
     "shared-resources": [
-      "nl.enjarai.shared_resources.registry.GameResources"
+      "com.crazylimits.shared_resources.registry.GameResources"
     ],
     "modmenu": [
-      "nl.enjarai.shared_resources.compat.modmenu.ModMenuIntegration"
+      "com.crazylimits.shared_resources.compat.modmenu.ModMenuIntegration"
     ]
   },
   "mixins": [

@@ -54,7 +54,7 @@ between different game versions and mod sets.
 A robust API is available for other mods to use, allowing them to easily
 add support for their own game files and directories.
 
-The API ships inside the main mod, in the `nl.enjarai.shared_resources.api` package.
+The API ships inside the main mod, in the `com.crazylimits.shared_resources.api` package.
 Depend on the mod at compile time only, and only touch API classes when it is loaded
 (`shared-resources` on Fabric, `shared_resources` on NeoForge and Forge).
 
@@ -71,7 +71,7 @@ On Fabric, create a Shared Resources entrypoint in your mod's `fabric.mod.json`:
 ```
 
 On NeoForge and Forge, register it as a Java service instead, by listing the class in
-`META-INF/services/nl.enjarai.shared_resources.api.SharedResourcesEntrypoint`.
+`META-INF/services/com.crazylimits.shared_resources.api.SharedResourcesEntrypoint`.
 
 Make sure to implement the `SharedResourcesEntrypoint` interface in your entrypoint class, 
 and use that to create and register your `GameResource` instances, each corresponding to a game file or directory.
@@ -138,6 +138,23 @@ Gradle runs on Java 25. JDKs 17 and 21 are needed for 1.20.1 and 1.21.x, and are
 ./gradlew :26.3-neoforge:runClient    # run one target, each gets its own run/{target} directory
 ```
 
+### Tests
+
+```bash
+./gradlew testAll                                       # unit and mixin tests on every target
+./gradlew selfTestAll -PsharedResources.selfTest        # launch every target and check each feature in game
+./gradlew :1.21.1-neoforge:runClient -PsharedResources.selfTest   # the same for one target
+```
+
+- **Unit tests** (`src/test`) cover the API, path resolution and the config file.
+- **`MixinTargetsTest`** reads the compiled mixins and checks every target class, shadow, accessor,
+  target method and injection point against that target's Minecraft, catching renamed methods
+  and changed call sites at build time.
+- **The self-test** launches the game with every resource shared into `run/selftest/{target}/global`,
+  checks options (including unknown options surviving), saves, resource packs, data packs, servers,
+  hotbars, screenshots and (on Fabric) the config folder, then quits. The build fails if any check does.
+  Mod compat (Iris, Litematica, ...) isn't covered, those mods aren't installed in the test game.
+
 `.sc_active_version` picks the version the IDE and the sources on disk are switched to.
 Change it and run `./gradlew stonecutterGenerate`, or use the "Set active project" tasks in the `stonecutter` group.
 
@@ -154,6 +171,17 @@ Forge uses ForgeGradle 7, except Forge 1.20.1 which uses ModDevGradle Legacy.
 - Everyone who contributed to the original project
 
 This fork is distributed under the same license as the original.
+
+## Modifications
+
+As required by the LGPLv3, this is a modified version of Shared Resources.
+The original copyright belongs to its authors, the changes are by crazy-limits (2026):
+
+- Ported to NeoForge and Forge next to Fabric, and to Minecraft 1.21.11 and 26.1–26.3
+- Moved from Yarn to Mojang's official mappings, with a Stonecutter multi-version build
+- Moved the code from `nl.enjarai.shared_resources` to `com.crazylimits.shared_resources`
+- Folded the API into the main mod, made Cloth Config optional and dropped Cicada
+- Fixed mixins that no longer applied on newer versions, added tests
 
 ## License
 

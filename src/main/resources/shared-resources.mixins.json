@@ -1,7 +1,7 @@
 {
   "required": true,
   "minVersion": "0.8",
-  "package": "nl.enjarai.shared_resources.mixin",
+  "package": "com.crazylimits.shared_resources.mixin",
   "compatibilityLevel": "${java}",
   "mixins": [
     "datapacks.VanillaDataPackProviderMixin",
@@ -16,6 +16,7 @@
     "resourcepacks.PackScreenMixin",
     "saves.MinecraftClientMixin",
     "screenshots.ScreenshotRecorderMixin",
+    "selftest.MinecraftSelfTestMixin",
     "servers.ServerListMixin"
   ],
   "injectors": {

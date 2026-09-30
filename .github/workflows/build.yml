@@ -1,7 +1,16 @@
-# Builds every Minecraft version and loader combination for each push and pull request.
+# Builds and tests every Minecraft version and loader combination for each push and pull request.
+# The in-game self-test launches 20 clients, so it only runs when started by hand.
 
 name: build
-on: [pull_request, push]
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+    inputs:
+      selftest:
+        description: Also launch every version in game and check each feature
+        type: boolean
+        default: true
 
 jobs:
   build:
@@ -22,10 +31,46 @@ jobs:
             25
       - name: setup gradle
         uses: gradle/actions/setup-gradle@v4
-      - name: build
-        run: ./gradlew collectAll --stacktrace
+      - name: build and test
+        run: ./gradlew collectAll testAll --stacktrace
       - name: capture build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: shared-resources
           path: build/libs/
+      - name: capture test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: versions/*/build/reports/tests/
+
+  selftest:
+    if: github.event_name == 'workflow_dispatch' && inputs.selftest
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v4
+      - name: setup jdks
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+            25
+      - name: setup gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: install virtual display
+        run: sudo apt-get update && sudo apt-get install -y xvfb mesa-utils
+      - name: self-test in game
+        run: xvfb-run -a -s "-screen 0 1280x720x24" ./gradlew selfTestAll -PsharedResources.selfTest --continue
+      - name: capture game logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selftest-logs
+          path: |
+            run/selftest/*/logs/
+            run/selftest/*/selftest-report.json
