@@ -1,12 +1,14 @@
-# Releases the tip of the default branch when a `release` tag is pushed there:
+# Releases the tip of the default branch when a `release`, `release-beta` or `release-alpha` tag is pushed there:
 #
-#   git tag -f release && git push -f origin release
+#   git tag -f release && git push -f origin release                  # 1.10.0
+#   git tag -f release-alpha && git push -f origin release-alpha      # 1.10.0-alpha.1, then alpha.2, ...
 #
 # The version comes from Conventional Commits since the last release (see .github/scripts/release.py):
 # feat -> minor, fix/perf -> patch, `!` or BREAKING CHANGE -> major. The workflow writes it to
 # stonecutter.properties.toml, puts the release notes in CHANGELOG.md, builds and tests every target, then
 # pushes a `chore(release)` commit with the version tag, creates the GitHub release with all jars and
-# uploads to Modrinth/CurseForge when their tokens are set. The `release` tag is removed afterwards.
+# uploads to Modrinth/CurseForge when their tokens are set. Alpha and beta versions are published as
+# pre-releases and alpha/beta files. The trigger tag is removed afterwards.
 #
 # Running it by hand (Actions > release > Run workflow) does the same and can force the bump level.
 
@@ -15,8 +17,15 @@ on:
   push:
     tags:
       - release
+      - release-beta
+      - release-alpha
   workflow_dispatch:
     inputs:
+      channel:
+        description: Release channel
+        type: choice
+        options: [release, beta, alpha]
+        default: release
       bump:
         description: Version bump
         type: choice
@@ -35,6 +44,8 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       BRANCH: ${{ github.event.repository.default_branch }}
+      # release, beta or alpha, from the trigger tag's name or the manual input
+      CHANNEL: ${{ github.event_name == 'push' && (github.ref_name == 'release' && 'release' || github.ref_name == 'release-beta' && 'beta' || 'alpha') || inputs.channel }}
     steps:
       - name: checkout repository
         uses: actions/checkout@v4
@@ -51,7 +62,7 @@ jobs:
       - name: work out the next version
         id: version
         run: |
-          version=$(python3 .github/scripts/release.py next --write --bump "${{ inputs.bump || 'auto' }}")
+          version=$(python3 .github/scripts/release.py next --write --bump "${{ inputs.bump || 'auto' }}" --channel "$CHANNEL")
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Releasing $version"
           cat CHANGELOG.md >> "$GITHUB_STEP_SUMMARY"
@@ -98,7 +109,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
-        run: gh release create "$VERSION" build/libs/"$VERSION"/*.jar --title "$VERSION" --notes-file CHANGELOG.md --verify-tag
+        run: |
+          prerelease=$([ "$CHANNEL" = release ] || echo --prerelease)
+          gh release create "$VERSION" build/libs/"$VERSION"/*.jar --title "$VERSION" --notes-file CHANGELOG.md --verify-tag $prerelease
       - name: publish to modrinth and curseforge
         env:
           ORG_GRADLE_PROJECT_modrinthToken: ${{ secrets.MODRINTH_TOKEN }}
@@ -117,4 +130,4 @@ jobs:
 
       - name: remove the release tag
         if: always() && github.event_name == 'push'
-        run: git push origin :refs/tags/release || true
+        run: git push origin ":refs/tags/$GITHUB_REF_NAME" || true

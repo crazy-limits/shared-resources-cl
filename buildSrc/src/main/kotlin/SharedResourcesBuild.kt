@@ -46,7 +46,12 @@ fun Project.configurePublishing(
         displayName.set("$modVersion for $loader $mcVersion")
         version.set(project.version.toString())
         changelog.set(rootProject.file("CHANGELOG.md").readText())
-        type.set(ReleaseType.STABLE)
+        // Pre-release versions (1.10.0-alpha.1) are uploaded as alpha or beta files
+        type.set(when {
+            "-alpha" in modVersion -> ReleaseType.ALPHA
+            "-beta" in modVersion -> ReleaseType.BETA
+            else -> ReleaseType.STABLE
+        })
         modLoaders.add(loader)
 
         providers.gradleProperty("modrinthToken").orNull?.let { token ->

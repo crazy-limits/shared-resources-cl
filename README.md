@@ -174,16 +174,23 @@ Commits follow [Conventional Commits](https://www.conventionalcommits.org), whic
 | `fix: ...`, `perf: ...`                  | patch (`1.10.1`)     |
 | anything else                            | no release           |
 
-To release, push the `release` tag on the latest commit of `master`:
+To release, push a trigger tag on the latest commit of `master`:
 
 ```bash
-git tag -f release && git push -f origin release
+git tag -f release && git push -f origin release                # stable: 1.10.0
+git tag -f release-beta && git push -f origin release-beta      # beta: 1.10.0-beta.1, beta.2, ...
+git tag -f release-alpha && git push -f origin release-alpha    # alpha: 1.10.0-alpha.1, alpha.2, ...
 ```
+
+Alpha and beta versions are [semver pre-releases](https://semver.org/#spec-item-9) of the next version, numbered
+after the ones already released. They're published as GitHub pre-releases and as alpha or beta files on
+Modrinth and CurseForge. Release notes list the changes since the previous release on any channel, or, for a
+stable release, since the last stable one.
 
 The [release workflow](.github/workflows/release.yml) then sets `mod.version`, writes the release notes to
 `CHANGELOG.md`, builds and tests every target, pushes a `chore(release): x.y.z` commit tagged `x.y.z`, creates
 the GitHub release with all jars and uploads to Modrinth and CurseForge if the `MODRINTH_TOKEN` and
-`CURSEFORGE_TOKEN` secrets are set. It can also be started from the Actions tab to force a bump level.
+`CURSEFORGE_TOKEN` secrets are set. It can also be started from the Actions tab to pick the channel or force a bump level.
 If `mod.version` was already raised by hand past the last release, that version is used instead of a lower one.
 
 Preview the next version locally with `python3 .github/scripts/release.py next`.

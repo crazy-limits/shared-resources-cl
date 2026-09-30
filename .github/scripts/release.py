@@ -2,17 +2,21 @@
 """
 Works out the next version from Conventional Commits (https://www.conventionalcommits.org).
 
-  release.py next [--bump auto|patch|minor|major]
-      Prints the next version and writes release notes to CHANGELOG.md.
-      `feat` bumps the minor version, `fix` and `perf` bump the patch version, and a `!` after the type
-      or a `BREAKING CHANGE:` footer bumps the major version. Other types (chore, docs, ci, ...) don't
-      make a release on their own.
+  release.py next [--bump auto|patch|minor|major] [--channel release|beta|alpha] [--write]
+      Prints the next version, and with --write stores it as mod.version and writes release notes to
+      CHANGELOG.md. `feat` bumps the minor version, `fix` and `perf` bump the patch version, and a `!` after
+      the type or a `BREAKING CHANGE:` footer bumps the major version. Other types (chore, docs, ci, ...)
+      don't make a release on their own.
+
+      The bump is counted from the last stable release. The alpha and beta channels make a semver
+      pre-release of that next version, numbered after the ones already tagged: 1.10.0-alpha.1,
+      1.10.0-alpha.2, 1.10.0-beta.1, then 1.10.0 on the release channel.
 
   release.py lint <revision range>
       Fails if a commit in the range doesn't follow Conventional Commits.
 
-Releases are tagged with the bare version (`1.10.0`), like the tags before this script. Tags with build
-metadata from older releases (`1.9.2+1.21.4`) count as their base version.
+Releases are tagged with the bare version (`1.10.0`, `1.10.0-alpha.1`), like the tags before this script.
+Tags with build metadata from older releases (`1.9.2+1.21.4`) count as their base version.
 """
 
 import argparse
@@ -28,28 +32,56 @@ CHANGELOG = ROOT / "CHANGELOG.md"
 TYPES = ("feat", "fix", "perf", "refactor", "revert", "docs", "style", "test", "build", "ci", "chore")
 HEADER = re.compile(r"^(?P<type>[a-z]+)(?:\((?P<scope>[^()\s]+)\))?(?P<breaking>!)?: (?P<subject>\S.*)$")
 BREAKING_FOOTER = re.compile(r"^BREAKING[ -]CHANGE: (?P<text>.+)$", re.MULTILINE)
-TAG = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:\+.*)?$")
+VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:-(alpha|beta)\.(\d+))?(?:\+.*)?$")
 MOD_VERSION = re.compile(r'^(mod\.version\s*=\s*")([^"]*)(")', re.MULTILINE)
 
 BUMPS = ("patch", "minor", "major")
+CHANNELS = ("release", "beta", "alpha")
 SECTIONS = (("breaking", "Breaking changes"), ("feat", "Features"), ("fix", "Fixes"), ("perf", "Performance"))
+
+
+class Version:
+    def __init__(self, core, channel=None, number=0):
+        self.core = core  # (major, minor, patch)
+        self.channel = channel  # None for a stable release, else "alpha" or "beta"
+        self.number = number
+
+    @classmethod
+    def parse(cls, text):
+        match = VERSION.match(text)
+        if not match:
+            return None
+        core = tuple(int(part) for part in match.groups()[:3])
+        return cls(core, match[4], int(match[5])) if match[4] else cls(core)
+
+    @property
+    def stable(self):
+        return self.channel is None
+
+    def key(self):
+        # A pre-release sorts before its stable release, and alpha before beta
+        return self.core, self.stable, self.channel or "", self.number
+
+    def __lt__(self, other):
+        return self.key() < other.key()
+
+    def __eq__(self, other):
+        return self.key() == other.key()
+
+    def __hash__(self):
+        return hash(self.key())
+
+    def __str__(self):
+        text = ".".join(str(part) for part in self.core)
+        return f"{text}-{self.channel}.{self.number}" if self.channel else text
 
 
 def git(*args):
     return subprocess.run(["git", *args], cwd=ROOT, check=True, capture_output=True, text=True).stdout
 
 
-def parse_version(text):
-    match = TAG.match(text)
-    return tuple(int(part) for part in match.groups()) if match else None
-
-
-def format_version(version):
-    return ".".join(str(part) for part in version)
-
-
-def bump(version, level):
-    major, minor, patch = version
+def bump(core, level):
+    major, minor, patch = core
     if level == "major":
         return major + 1, 0, 0
     if level == "minor":
@@ -57,17 +89,14 @@ def bump(version, level):
     return major, minor, patch + 1
 
 
-def last_release():
-    """The highest released version reachable from HEAD, and every tag naming it."""
+def released():
+    """Every released version reachable from HEAD, with the tags naming it."""
     tags = {}
     for tag in git("tag", "--merged", "HEAD").split():
-        version = parse_version(tag)
+        version = Version.parse(tag)
         if version:
             tags.setdefault(version, []).append(tag)
-    if not tags:
-        return None, []
-    version = max(tags)
-    return version, tags[version]
+    return tags
 
 
 def commits(*revisions):
@@ -78,6 +107,11 @@ def commits(*revisions):
         if record:
             sha, subject, body = record.split("\x1f")
             yield sha, subject, body
+
+
+def changes_since(tags):
+    revisions = ["HEAD", *(f"^{tag}" for tag in tags)]
+    return [change for change in (parse(s, b) for _, s, b in commits(*revisions)) if change]
 
 
 def parse(subject, body):
@@ -94,16 +128,27 @@ def parse(subject, body):
     }
 
 
+def bump_level(changes):
+    if any(c["breaking"] for c in changes):
+        return "major"
+    if any(c["type"] == "feat" for c in changes):
+        return "minor"
+    if any(c["type"] in ("fix", "perf") for c in changes):
+        return "patch"
+    return None
+
+
 def read_mod_version():
     match = MOD_VERSION.search(PROPERTIES.read_text())
-    if not match:
-        sys.exit(f"no mod.version in {PROPERTIES.name}")
-    return parse_version(match[2])
+    version = match and Version.parse(match[2])
+    if not version:
+        sys.exit(f"no valid mod.version in {PROPERTIES.name}")
+    return version
 
 
 def write_mod_version(version):
     text = PROPERTIES.read_text()
-    PROPERTIES.write_text(MOD_VERSION.sub(lambda m: m[1] + format_version(version) + m[3], text, count=1))
+    PROPERTIES.write_text(MOD_VERSION.sub(lambda m: m[1] + str(version) + m[3], text, count=1))
 
 
 def release_notes(changes):
@@ -120,40 +165,42 @@ def release_notes(changes):
 
 
 def next_version(args):
-    last, last_tags = last_release()
-    revisions = ["HEAD", *(f"^{tag}" for tag in last_tags)]
-    changes = [change for change in (parse(s, b) for _, s, b in commits(*revisions)) if change]
+    tags = released()
+    stable = [version for version in tags if version.stable]
+    last_stable = max(stable) if stable else Version((0, 0, 0))
 
-    level = args.bump
-    if level == "auto":
-        if any(c["breaking"] for c in changes):
-            level = "major"
-        elif any(c["type"] == "feat" for c in changes):
-            level = "minor"
-        elif any(c["type"] in ("fix", "perf") for c in changes):
-            level = "patch"
-        else:
-            level = None
-
-    stored = read_mod_version()
-    base = last or (0, 0, 0)
-    version = bump(base, level) if level else None
+    # The bump level counts everything since the last stable release, so alpha.2 stays on the same version
+    level = args.bump if args.bump != "auto" else bump_level(changes_since(tags.get(last_stable, [])))
+    core = bump(last_stable.core, level) if level else None
     # mod.version may already have been raised by hand ahead of the release; never go below it
-    if stored > base and (version is None or stored > version):
-        version = stored
-    if version is None:
-        sys.exit(f"nothing to release since {format_version(base)}: no feat, fix, perf or breaking commits")
+    stored = read_mod_version().core
+    if stored > last_stable.core and (core is None or stored > core):
+        core = stored
+    if core is None:
+        sys.exit(f"nothing to release since {last_stable}: no feat, fix, perf or breaking commits")
 
-    notes = release_notes(changes)
+    if args.channel == "release":
+        version = Version(core)
+    else:
+        channel = args.channel
+        taken = [v.number for v in tags if v.core == core and v.channel == channel]
+        version = Version(core, channel, max(taken, default=0) + 1)
+    if version in tags:
+        sys.exit(f"{version} is already released")
+
+    # A pre-release lists what changed since the previous release on any channel, a stable release
+    # everything since the last stable one
+    previous = max((v for v in tags if v < version and (v.stable or not version.stable)), default=None)
+    notes = release_notes(changes_since(tags[previous] if previous else []))
     if not notes:
-        # Only a hand-raised mod.version: keep the notes someone already wrote in CHANGELOG.md
+        # Nothing conventional to list: keep the notes someone already wrote in CHANGELOG.md
         notes = CHANGELOG.read_text().strip() + "\n"
     if args.write:
         write_mod_version(version)
         CHANGELOG.write_text(notes)
     else:
         print(notes, file=sys.stderr)
-    print(format_version(version))
+    print(version)
 
 
 def lint(args):
@@ -171,6 +218,7 @@ def main():
 
     next_parser = commands.add_parser("next", help="print the next version")
     next_parser.add_argument("--bump", choices=("auto", *BUMPS), default="auto")
+    next_parser.add_argument("--channel", choices=CHANNELS, default="release")
     next_parser.add_argument("--write", action="store_true", help="update mod.version and CHANGELOG.md")
     next_parser.set_defaults(run=next_version)
 
