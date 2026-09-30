@@ -28,7 +28,8 @@ class PublishingDependencies {
 }
 
 /**
- * Configures uploading to Modrinth and CurseForge, enabled by the `modrinthToken` and `curseforgeToken` Gradle properties.
+ * Configures uploading to Modrinth and CurseForge, enabled by the `modrinthToken` and `curseforgeToken` Gradle properties
+ * (an empty one, like an unset CI secret, counts as missing).
  * The GitHub release, with every jar in one place, is made by the release workflow.
  */
 fun Project.configurePublishing(
@@ -56,7 +57,7 @@ fun Project.configurePublishing(
         // -PpublishDryRun checks everything without uploading
         dryRun.set(providers.gradleProperty("publishDryRun").isPresent)
 
-        providers.gradleProperty("modrinthToken").orNull?.let { token ->
+        providers.gradleProperty("modrinthToken").orNull?.takeIf { it.isNotBlank() }?.let { token ->
             modrinth {
                 projectId.set(property("mod.modrinth").toString())
                 accessToken.set(token)
@@ -66,7 +67,7 @@ fun Project.configurePublishing(
             }
         }
 
-        providers.gradleProperty("curseforgeToken").orNull?.let { token ->
+        providers.gradleProperty("curseforgeToken").orNull?.takeIf { it.isNotBlank() }?.let { token ->
             curseforge {
                 projectId.set(property("mod.curseforge").toString())
                 accessToken.set(token)
