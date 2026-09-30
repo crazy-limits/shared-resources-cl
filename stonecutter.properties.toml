@@ -5,7 +5,7 @@ mod.name = "Shared Resources"
 mod.group = "com.crazylimits"
 mod.version = "1.10.0"
 mod.modrinth = "8CsGxc95"
-mod.curseforge = "679045"
+mod.curseforge = "1719244"
 
 deps.fabric_loader = "0.19.5"
 
