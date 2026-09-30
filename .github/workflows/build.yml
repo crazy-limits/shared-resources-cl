@@ -1,12 +1,12 @@
-# Builds and tests every Minecraft version and loader combination for each push and pull request.
+# Builds and tests every Minecraft version and loader combination when a version tag (like 1.10.0) is pushed,
+# or when started by hand. Branch pushes and pull requests don't build.
 # The in-game self-test launches 20 clients, so it only runs when started by hand.
 
 name: build
 on:
-  pull_request:
   push:
-    # Not on tags: the release workflow builds those itself
-    branches: ['**']
+    # Only version tags pushed by hand; the release workflow builds the ones it creates itself
+    tags: ['[0-9]+.[0-9]+.[0-9]+*']
   workflow_dispatch:
     inputs:
       selftest:
